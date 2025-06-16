@@ -341,7 +341,8 @@ interface LoginPageProps {
   onLogin: (email: string, password: string) => User | undefined;
 }
 
-function LoginPage({ onLogin }: LoginPageProps) {ate('');
+function LoginPage({ onLogin }: LoginPageProps) {
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -442,26 +443,12 @@ function LoginPage({ onLogin }: LoginPageProps) {ate('');
         </div>
       </div>
     </div>
-// Admin Dashboard Component
-interface AdminDashboardProps {
-  user: User;
-  onLogout: () => void;
-  jobs: Job[];
-  setJobs: React.Dispatch<React.SetStateAction<Job[]>>;
-  cvs: CV[];
-  setCvs: React.Dispatch<React.SetStateAction<CV[]>>;
-  matches: Match[];
-  setMatches: React.Dispatch<React.SetStateAction<Match[]>>;
-  tests: Test[];
-  setTests: React.Dispatch<React.SetStateAction<Test[]>>;
-  calculateMatch: (job: Job, cv: CV) => number;
-  sidebarOpen: boolean;
-  setSidebarOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  showNewJobForm: boolean;
-  setShowNewJobForm: React.Dispatch<React.SetStateAction<boolean>>;
-  onPasswordChange: (userId: number, oldPassword: string, newPassword: string) => boolean;
+  );
 }
-  const [activeSection, setActiveSection] = useState('overview');
+
+// Admin Dashboard Component
+function AdminDashboard({ user, onLogout, jobs, setJobs, cvs, setCvs, matches, setMatches, tests, setTests, calculateMatch, sidebarOpen, setSidebarOpen, showNewJobForm, setShowNewJobForm, onPasswordChange }: AdminDashboardProps) {
+  const [activeSection, setActiveSection] = useState<'overview' | 'jobs' | 'cvs' | 'matching' | 'candidates' | 'analytics'>('overview');
   
   interface StatItem {
     label: string;
@@ -476,27 +463,6 @@ interface AdminDashboardProps {
     { label: 'Matches Found', value: matches.length, icon: FileCheck, color: 'from-green-500 to-emerald-500' },
     { label: 'Tests Completed', value: tests.filter(t => t.completed).length, icon: Award, color: 'from-orange-500 to-red-500' }
   ];
-
-  const menuItems = [
-  onLogout, 
-  jobs, 
-  setJobs, 
-  cvs, 
-  setCvs,
-  matches, 
-  setMatches, 
-  tests, 
-  setTests, 
-  calculateMatch, 
-  sidebarOpen, 
-  setSidebarOpen,
-  showNewJobForm,
-  setShowNewJobForm,
-  onPasswordChange
-}: AdminDashboardProps) {
-  const [activeSection, setActiveSection] = useState<'overview' | 'jobs' | 'cvs' | 'matching' | 'candidates' | 'analytics'>('overview');
-}) {
-  const [activeSection, setActiveSection] = useState('overview');
 
   const menuItems = [
     { id: 'overview', label: 'Overview', icon: Home },
@@ -663,55 +629,31 @@ interface AdminDashboardProps {
 
           {activeSection === 'jobs' && (
             <JobsSection 
-// Jobs Section Component
-interface JobsSectionProps {
-  jobs: Job[];
-  setJobs: React.Dispatch<React.SetStateAction<Job[]>>;
-  showNewJobForm: boolean;
-  setShowNewJobForm: React.Dispatch<React.SetStateAction<boolean>>;
-}
+              jobs={jobs}
+              setJobs={setJobs}
+              showNewJobForm={showNewJobForm}
+              setShowNewJobForm={setShowNewJobForm}
+            />
+          )}
 
-interface JobFormData {
-  title: string;
-  description: string;
-  requiredSkills: string;
-  experienceLevel: string;
-}
+          {activeSection === 'cvs' && (
+            <CVsSection cvs={cvs} />
+          )}
 
-interface JobEditData extends JobFormData {
-  id: number;
-}
+          {activeSection === 'matching' && (
+            <MatchingSection 
+              jobs={jobs}
+              cvs={cvs}
+              matches={matches}
+              setMatches={setMatches}
+              calculateMatch={calculateMatch}
+              tests={tests}
+              setTests={setTests}
+            />
+          )}
 
-function JobsSection({ jobs, setJobs, showNewJobForm, setShowNewJobForm }: JobsSectionProps) {
-  const [newJob, setNewJob] = useState<JobFormData>({
-    title: '',
-    description: '',
-    requiredSkills: '',
-  const handleEditJob = (job: Job) => {
-    setEditingJob({
-      ...job,
-      requiredSkills: job.requiredSkills.join(', ')
-    });
-    setShowEditForm(true);
-  };
-
-  const handleUpdateJob = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingJob) return;
-    
-    const updatedJob: Job = {
-      id: editingJob.id,
-      title: editingJob.title,
-      description: editingJob.description,
-      requiredSkills: editingJob.requiredSkills.split(',').map(s => s.trim()),
-      experienceLevel: editingJob.experienceLevel,
-      createdAt: jobs.find(j => j.id === editingJob.id)?.createdAt || new Date()
-    };
-    
-    setJobs(jobs.map(job => job.id === updatedJob.id ? updatedJob : job));
-    setEditingJob(null);
-    setShowEditForm(false);
-  };        <CandidatesSection cvs={cvs} setCvs={setCvs} tests={tests} />
+          {activeSection === 'candidates' && (
+            <CandidatesSection cvs={cvs} tests={tests} setCvs={setCvs} />
           )}
 
           {activeSection === 'analytics' && (
@@ -721,6 +663,18 @@ function JobsSection({ jobs, setJobs, showNewJobForm, setShowNewJobForm }: JobsS
       </div>
     </div>
   );
+}
+
+// Jobs Section Component
+interface JobFormData {
+  title: string;
+  description: string;
+  requiredSkills: string;
+  experienceLevel: string;
+}
+
+interface JobEditData extends JobFormData {
+  id: number;
 }
 
 // Jobs Section Component
@@ -749,14 +703,16 @@ function JobsSection({ jobs, setJobs, showNewJobForm, setShowNewJobForm }) {
 
   const handleEditJob = (job) => {
     setEditingJob({
-              <textarea
-                value={newJob.description}
-                onChange={(e) => setNewJob({ ...newJob, description: e.target.value })}
-                className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                rows={3}
-                placeholder="Job description..."
-                required
-              />ault();
+      ...job,
+      requiredSkills: job.requiredSkills.join(', ')
+    });
+    setShowEditForm(true);
+  };
+
+  const handleUpdateJob = (e) => {
+    e.preventDefault();
+    if (!editingJob) return;
+    
     const updatedJob = {
       ...editingJob,
       requiredSkills: editingJob.requiredSkills.split(',').map(s => s.trim())
@@ -807,19 +763,19 @@ function JobsSection({ jobs, setJobs, showNewJobForm, setShowNewJobForm }) {
                 value={newJob.description}
                 onChange={(e) => setNewJob({ ...newJob, description: e.target.value })}
                 className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                value={editingJob?.title || ''}
-                onChange={(e) => editingJob && setEditingJob({ ...editingJob, title: e.target.value })}
+                rows={3}
+                placeholder="Job description..."
                 required
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Required Skills (comma-separated)</label>
               <input
-              <textarea
-                value={editingJob?.description || ''}
-                onChange={(e) => editingJob && setEditingJob({ ...editingJob, description: e.target.value })}
+                type="text"
+                value={newJob.requiredSkills}
+                onChange={(e) => setNewJob({ ...newJob, requiredSkills: e.target.value })}
                 className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                rows={3}
+                placeholder="e.g., React, Node.js, TypeScript"
                 required
               />
             </div>
@@ -827,8 +783,8 @@ function JobsSection({ jobs, setJobs, showNewJobForm, setShowNewJobForm }) {
               <label className="block text-sm font-medium text-gray-300 mb-2">Experience Level</label>
               <input
                 type="text"
-                value={editingJob?.requiredSkills || ''}
-                onChange={(e) => editingJob && setEditingJob({ ...editingJob, requiredSkills: e.target.value })}
+                value={newJob.experienceLevel}
+                onChange={(e) => setNewJob({ ...newJob, experienceLevel: e.target.value })}
                 className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 placeholder="e.g., 5+ years"
                 required
@@ -837,8 +793,8 @@ function JobsSection({ jobs, setJobs, showNewJobForm, setShowNewJobForm }) {
             <div className="flex space-x-3">
               <button
                 type="submit"
-                value={editingJob?.experienceLevel || ''}
-                onChange={(e) => editingJob && setEditingJob({ ...editingJob, experienceLevel: e.target.value })}
+                className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all"
+              >
                 Create Job
               </button>
               <button
