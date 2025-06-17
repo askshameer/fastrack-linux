@@ -3,7 +3,7 @@ import { User as UserIcon, Briefcase, FileText, Home, Users, FileCheck, BarChart
 import { User, Job, CV, Match, Test, mockUsers } from './types';
 import JobsSection from './components/JobsSection';
 import CVsSection from './components/CVsSection';
-import MatchingSection from './components/MatchingSection';
+import EnhancedMatchingSection from './components/EnhancedMatchingSection';
 import CandidatesSection from './components/CandidatesSection';
 import AnalyticsSection from './components/AnalyticsSection';
 
@@ -21,7 +21,6 @@ interface AdminDashboardProps {
   setTests: React.Dispatch<React.SetStateAction<Test[]>>;
   setUsers: React.Dispatch<React.SetStateAction<User[]>>;
   setCurrentUser?: React.Dispatch<React.SetStateAction<User | null>>;
-  calculateMatch: (job: Job, cv: CV) => number;
   sidebarOpen: boolean;
   setSidebarOpen: React.Dispatch<React.SetStateAction<boolean>>;
   showNewJobForm: boolean;
@@ -43,7 +42,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   setTests,
   setUsers,
   setCurrentUser,
-  calculateMatch,
   sidebarOpen,
   setSidebarOpen,
   showNewJobForm,
@@ -240,12 +238,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           )}
 
           {activeSection === 'matching' && (
-            <MatchingSection 
+            <EnhancedMatchingSection 
               jobs={jobs} 
               cvs={cvs} 
               matches={matches} 
               setMatches={setMatches}
-              calculateMatch={calculateMatch}
               tests={tests}
               setTests={setTests}
             />

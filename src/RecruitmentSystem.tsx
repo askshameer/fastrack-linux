@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { User as UserIcon, Briefcase, FileText, Clock, CheckCircle, XCircle, Upload, Search, Filter, Eye, EyeOff, Menu, X, Home, Users, FileCheck, BarChart3, Settings, LogOut, Timer, Award, TrendingUp, Calendar, Mail, Lock, ArrowRight, Plus, Trash2, Edit, Download, Send, AlertCircle, ChevronDown } from 'lucide-react';
-import { User, Job, CV, Match, Test, mockUsers, mockJobs, mockCVs, mockQuestions, Question } from './types';
+import { User, Job, CV, Match, Test, Question } from './types';
+import { demoJobs, demoCVs, demoUsers, demoQuestions } from './data/demoData';
 import AdminDashboard from './AdminDashboard';
 import UserDashboard from './UserDashboard';
 import { TextMatcher } from './utils/textProcessing';
@@ -8,9 +9,9 @@ import { TextMatcher } from './utils/textProcessing';
 // Main App Component
 const RecruitmentSystem: React.FC = () => {  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentView, setCurrentView] = useState<'login' | 'adminDashboard' | 'userDashboard'>('login');
-  const [users, setUsers] = useState<User[]>(mockUsers);
-  const [jobs, setJobs] = useState<Job[]>(mockJobs);
-  const [cvs, setCvs] = useState<CV[]>(mockCVs);
+  const [users, setUsers] = useState<User[]>(demoUsers);
+  const [jobs, setJobs] = useState<Job[]>(demoJobs);
+  const [cvs, setCvs] = useState<CV[]>(demoCVs);
   const [matches, setMatches] = useState<Match[]>([]);
   const [tests, setTests] = useState<Test[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
@@ -119,7 +120,7 @@ const RecruitmentSystem: React.FC = () => {  const [currentUser, setCurrentUser]
           matches={matches}
           tests={tests}
           setTests={setTests}
-          questions={mockQuestions}
+          questions={demoQuestions}
           sidebarOpen={sidebarOpen}
           setSidebarOpen={setSidebarOpen}
           onPasswordChange={handlePasswordChange}
