@@ -91,6 +91,9 @@ const EnhancedMatchingSection: React.FC<EnhancedMatchingSectionProps> = ({
     setIsAnalyzing(true);
     const newEnhancedMatches: EnhancedMatch[] = [];
 
+    console.log('Starting AI matching with CVs:', cvs.map(cv => ({ id: cv.id, fileName: cv.fileName, userId: cv.userId })));
+    console.log('Jobs available:', jobs.map(job => ({ id: job.id, title: job.title })));
+
     try {
       for (const job of jobs) {
         for (const cv of cvs) {
@@ -146,6 +149,28 @@ const EnhancedMatchingSection: React.FC<EnhancedMatchingSectionProps> = ({
     setEnhancedMatches([]);
     setMatches([]);
   };
+
+  // Clear saved matches when CVs or jobs change to ensure fresh results
+  useEffect(() => {
+    // If we have saved matches but the CV/job lists have changed, clear the matches
+    const savedMatches = localStorage.getItem('enhanced_matches');
+    if (savedMatches && enhancedMatches.length > 0) {
+      try {
+        const parsedMatches = JSON.parse(savedMatches);
+        const hasInvalidMatches = parsedMatches.some((match: EnhancedMatch) => 
+          !jobs.some(job => job.id === match.jobId) || 
+          !cvs.some(cv => cv.id === match.cvId)
+        );
+        if (hasInvalidMatches) {
+          console.log('Clearing outdated matches due to CV/job changes');
+          clearSavedMatches();
+        }
+      } catch (error) {
+        console.error('Error checking saved matches:', error);
+        clearSavedMatches();
+      }
+    }
+  }, [cvs.length, jobs.length]);
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-400';
@@ -290,6 +315,16 @@ const EnhancedMatchingSection: React.FC<EnhancedMatchingSectionProps> = ({
               <span>Clear Results</span>
             </button>
           )}
+          
+          <button
+            onClick={() => {
+              console.log('Current CVs in component:', cvs.map(cv => ({ id: cv.id, fileName: cv.fileName, userId: cv.userId })));
+              console.log('Current Jobs in component:', jobs.map(job => ({ id: job.id, title: job.title })));
+            }}
+            className="flex items-center space-x-2 px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all text-sm"
+          >
+            Debug
+          </button>
         </div>
       </div>
 

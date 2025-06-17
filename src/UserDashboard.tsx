@@ -131,9 +131,10 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
       );
       setCvs(updatedCVs);
     } else {
-      // Create new CV
+      // Create new CV with proper ID generation
+      const maxId = cvs.length > 0 ? Math.max(...cvs.map(cv => cv.id)) : 0;
       const newCVObject: CV = {
-        id: cvs.length + 1,
+        id: maxId + 1,
         userId: user.id,
         fileName: newCV.fileName || `${user.name.replace(/\s+/g, '_')}_CV.pdf`,
         skills: newCV.skills.split(',').map(s => s.trim()),

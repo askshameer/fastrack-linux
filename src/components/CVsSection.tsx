@@ -7,16 +7,26 @@ interface CVsSectionProps {
   cvs: CV[];
   setCvs: React.Dispatch<React.SetStateAction<CV[]>>;
   currentUser: User;
+  users: User[];
+  setUsers: React.Dispatch<React.SetStateAction<User[]>>;
 }
 
-const CVsSection: React.FC<CVsSectionProps> = ({ cvs, setCvs, currentUser }) => {  const [searchTerm, setSearchTerm] = useState('');
+const CVsSection: React.FC<CVsSectionProps> = ({ cvs, setCvs, currentUser, users, setUsers }) => {
+  // Add error boundary
+  const [error, setError] = useState<string>('');
+  
+  const [searchTerm, setSearchTerm] = useState('');
   const [filterSkill, setFilterSkill] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [newCV, setNewCV] = useState({
     fileName: '',
     skills: '',
-    experience: ''
+    experience: '',
+    selectedUserId: '',
+    newUserName: '',
+    newUserEmail: '',
+    createNewUser: false
   });
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -25,15 +35,28 @@ const CVsSection: React.FC<CVsSectionProps> = ({ cvs, setCvs, currentUser }) => 
   const [previewCV, setPreviewCV] = useState<CV | null>(null);
 
   // Get all unique skills from all CVs for filter dropdown
-  const allSkills = Array.from(new Set(cvs.flatMap(cv => cv.skills))).sort();
+  let allSkills: string[] = [];
+  let filteredCVs: CV[] = [];
 
-  const filteredCVs = cvs.filter(cv => {
-    const matchesSearch = cv.fileName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSkill = !filterSkill || cv.skills.some(skill => 
-      skill.toLowerCase() === filterSkill.toLowerCase()
-    );
-    return matchesSearch && matchesSkill;
-  });
+  try {
+    allSkills = Array.from(new Set(cvs.flatMap(cv => cv.skills || []))).sort();
+    
+    filteredCVs = cvs.filter(cv => {
+      try {
+        const matchesSearch = (cv.fileName || '').toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesSkill = !filterSkill || (cv.skills || []).some(skill => 
+          skill.toLowerCase() === filterSkill.toLowerCase()
+        );
+        return matchesSearch && matchesSkill;
+      } catch (err) {
+        console.error('Error filtering CV:', cv, err);
+        return false;
+      }
+    });
+  } catch (err) {
+    console.error('Error processing CVs:', err);
+    setError(`Error processing CVs: ${err instanceof Error ? err.message : 'Unknown error'}`);
+  }
   const handleUploadCV = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -59,10 +82,57 @@ const CVsSection: React.FC<CVsSectionProps> = ({ cvs, setCvs, currentUser }) => 
         
       const finalExperience = newCV.experience || extractedExperience;
       
-      // Create new CV object
+      // Handle user selection or creation
+      let targetUserId: number;
+
+      if (newCV.createNewUser) {
+        // Validate new user data
+        if (!newCV.newUserName.trim()) {
+          setFileError('Please enter the candidate name');
+          setIsProcessing(false);
+          return;
+        }
+        if (!newCV.newUserEmail.trim()) {
+          setFileError('Please enter the candidate email');
+          setIsProcessing(false);
+          return;
+        }
+
+        // Check if email already exists
+        if (users.some(user => user.email.toLowerCase() === newCV.newUserEmail.toLowerCase())) {
+          setFileError('A user with this email already exists');
+          setIsProcessing(false);
+          return;
+        }
+
+        // Create new user
+        const maxUserId = users.length > 0 ? Math.max(...users.map(u => u.id)) : 0;
+        const newUser: User = {
+          id: maxUserId + 1,
+          name: newCV.newUserName.trim(),
+          email: newCV.newUserEmail.trim(),
+          password: 'user123', // Default password
+          role: 'user',
+          availability: true
+        };
+
+        setUsers([...users, newUser]);
+        targetUserId = newUser.id;
+      } else {
+        // Validate existing user selection
+        if (!newCV.selectedUserId) {
+          setFileError('Please select a candidate or create a new one');
+          setIsProcessing(false);
+          return;
+        }
+        targetUserId = parseInt(newCV.selectedUserId);
+      }
+
+      // Create new CV object with proper ID generation
+      const maxId = cvs.length > 0 ? Math.max(...cvs.map(cv => cv.id)) : 0;
       const newCVObject: CV = {
-        id: cvs.length + 1,
-        userId: currentUser.id,
+        id: maxId + 1,
+        userId: targetUserId,
         fileName: cvFile.name,
         skills: finalSkills,
         experience: finalExperience,
@@ -78,7 +148,15 @@ const CVsSection: React.FC<CVsSectionProps> = ({ cvs, setCvs, currentUser }) => 
       setCvs([...cvs, newCVObject]);
       
       // Reset form and close modal
-      setNewCV({ fileName: '', skills: '', experience: '' });
+      setNewCV({ 
+        fileName: '', 
+        skills: '', 
+        experience: '', 
+        selectedUserId: '',
+        newUserName: '',
+        newUserEmail: '',
+        createNewUser: false
+      });
       setCvFile(null);
       setFileError('');
       setUploadModalOpen(false);
@@ -138,6 +216,40 @@ const CVsSection: React.FC<CVsSectionProps> = ({ cvs, setCvs, currentUser }) => 
       }
     }
   };
+
+  // Add error logging
+  console.log('CVsSection rendering with:', { 
+    cvsCount: cvs?.length || 0, 
+    currentUser: currentUser?.name || 'Unknown',
+    error 
+  });
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-6 text-center">
+          <h3 className="text-xl font-semibold text-red-400 mb-2">Error Loading CVs</h3>
+          <p className="text-red-200">{error}</p>
+          <button 
+            onClick={() => setError('')}
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!cvs || !currentUser) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-gray-800/50 backdrop-blur-sm p-8 rounded-xl border border-gray-700 text-center">
+          <p className="text-gray-400">Loading CVs...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -204,7 +316,9 @@ const CVsSection: React.FC<CVsSectionProps> = ({ cvs, setCvs, currentUser }) => 
             <div key={cv.id} className="bg-gray-800/50 backdrop-blur-sm p-6 rounded-xl border border-gray-700 flex flex-col">
               <div className="flex-1">
                 <h4 className="text-lg font-semibold text-white mb-2">{cv.fileName}</h4>
-                <p className="text-gray-400 text-sm mb-4">Uploaded: {cv.uploadedAt.toLocaleDateString()}</p>
+                <p className="text-gray-400 text-sm mb-4">
+                  Uploaded: {cv.uploadedAt instanceof Date ? cv.uploadedAt.toLocaleDateString() : new Date(cv.uploadedAt).toLocaleDateString()}
+                </p>
                 
                 <div className="mb-4">
                   <p className="text-sm text-gray-400 mb-1">Experience:</p>
@@ -286,6 +400,79 @@ const CVsSection: React.FC<CVsSectionProps> = ({ cvs, setCvs, currentUser }) => 
               </div>
               
               <div className="mb-4">
+                <label className="block text-gray-400 mb-2">Candidate Selection</label>
+                
+                {/* Toggle between existing and new candidate */}
+                <div className="flex space-x-4 mb-3">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="candidateType"
+                      checked={!newCV.createNewUser}
+                      onChange={() => setNewCV({...newCV, createNewUser: false, newUserName: '', newUserEmail: ''})}
+                      className="mr-2"
+                    />
+                    <span className="text-white text-sm">Existing Candidate</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="candidateType"
+                      checked={newCV.createNewUser}
+                      onChange={() => setNewCV({...newCV, createNewUser: true, selectedUserId: ''})}
+                      className="mr-2"
+                    />
+                    <span className="text-white text-sm">Create New Candidate</span>
+                  </label>
+                </div>
+
+                {!newCV.createNewUser ? (
+                  // Existing candidate selection
+                  <div>
+                    <select
+                      value={newCV.selectedUserId}
+                      onChange={(e) => setNewCV({...newCV, selectedUserId: e.target.value})}
+                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      required={!newCV.createNewUser}
+                    >
+                      <option value="">Choose a candidate...</option>
+                      {users.filter(user => user.role === 'user').map(user => (
+                        <option key={user.id} value={user.id.toString()}>
+                          {user.name} ({user.email})
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-gray-500 text-xs mt-1">Select which existing candidate this CV belongs to</p>
+                  </div>
+                ) : (
+                  // New candidate creation fields
+                  <div className="space-y-3">
+                    <div>
+                      <input
+                        type="text"
+                        value={newCV.newUserName}
+                        onChange={(e) => setNewCV({...newCV, newUserName: e.target.value})}
+                        placeholder="Candidate Full Name"
+                        className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        required={newCV.createNewUser}
+                      />
+                    </div>
+                    <div>
+                      <input
+                        type="email"
+                        value={newCV.newUserEmail}
+                        onChange={(e) => setNewCV({...newCV, newUserEmail: e.target.value})}
+                        placeholder="Candidate Email Address"
+                        className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        required={newCV.createNewUser}
+                      />
+                    </div>
+                    <p className="text-gray-500 text-xs">A new candidate profile will be created with default password: user123</p>
+                  </div>
+                )}
+              </div>
+              
+              <div className="mb-4">
                 <label className="block text-gray-400 mb-2">Skills (comma separated)</label>
                 <input
                   type="text"
@@ -316,7 +503,15 @@ const CVsSection: React.FC<CVsSectionProps> = ({ cvs, setCvs, currentUser }) => 
                     setUploadModalOpen(false);
                     setCvFile(null);
                     setFileError('');
-                    setNewCV({ fileName: '', skills: '', experience: '' });
+                    setNewCV({ 
+                      fileName: '', 
+                      skills: '', 
+                      experience: '', 
+                      selectedUserId: '',
+                      newUserName: '',
+                      newUserEmail: '',
+                      createNewUser: false
+                    });
                   }}
                   className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-all"
                   disabled={isProcessing}
@@ -351,12 +546,30 @@ const CVsSection: React.FC<CVsSectionProps> = ({ cvs, setCvs, currentUser }) => 
             </div>
             
             <div className="flex-1 overflow-auto bg-white rounded-lg">
-              {(previewCV as any).fileData && (
-                <iframe 
-                  src={(previewCV as any).fileData} 
-                  className="w-full h-full min-h-[60vh]" 
-                  title={previewCV.fileName}
-                />
+              {(previewCV as any).fileData ? (
+                previewCV.fileName.toLowerCase().endsWith('.pdf') ? (
+                  <iframe 
+                    src={(previewCV as any).fileData} 
+                    className="w-full h-full min-h-[60vh]" 
+                    title={previewCV.fileName}
+                  />
+                ) : previewCV.fileName.toLowerCase().endsWith('.txt') ? (
+                  <div className="p-4 text-black whitespace-pre-wrap font-mono text-sm">
+                    {/* For text files, we would need to read the content differently */}
+                    <p className="text-gray-600">Preview not available for this file type.</p>
+                    <p className="text-gray-600">Use the download button to view the full content.</p>
+                  </div>
+                ) : (
+                  <div className="p-4 text-center text-gray-600">
+                    <p className="mb-2">Preview not available for this file type.</p>
+                    <p>Supported preview formats: PDF</p>
+                    <p>Use the download button to view the full content.</p>
+                  </div>
+                )
+              ) : (
+                <div className="p-4 text-center text-gray-600">
+                  <p>No preview data available.</p>
+                </div>
               )}
             </div>
             

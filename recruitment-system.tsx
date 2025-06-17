@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User as UserIcon, Briefcase, FileText, Clock, CheckCircle, XCircle, Upload, Search, Filter, Eye, EyeOff, Menu, X, Home, Users, FileCheck, BarChart3, Settings, LogOut, Timer, Award, TrendingUp, Calendar, Mail, Lock, ArrowRight, Plus, Trash2, Edit, Download, Send, AlertCircle, ChevronDown } from 'lucide-react';
+import EnhancedMatchingSection from './src/components/EnhancedMatchingSection';
+import { demoJobs, demoCVs, demoUsers, demoQuestions } from './src/data/demoData';
 
 // Type definitions
 interface User {
@@ -180,41 +182,9 @@ interface StatItem {
 }
 
 // Mock data and utilities
-const mockUsers: User[] = [
-  { id: 1, email: 'admin@company.com', password: 'admin123', role: 'admin', name: 'Sarah Johnson' },
-  { id: 2, email: 'john@example.com', password: 'user123', role: 'user', name: 'John Doe', availability: true }
-];
-
-const mockJobs: Job[] = [
-  {
-    id: 1,
-    title: 'Senior Full Stack Developer',
-    description: 'We are looking for an experienced full stack developer to join our team.',
-    requiredSkills: ['React', 'Node.js', 'MongoDB', 'TypeScript'],
-    experienceLevel: '5+ years',
-    createdAt: new Date('2024-01-15')
-  },
-  {
-    id: 2,
-    title: 'UX/UI Designer',
-    description: 'Creative designer needed for our product team.',
-    requiredSkills: ['Figma', 'Adobe XD', 'Prototyping', 'User Research'],
-    experienceLevel: '3+ years',
-    createdAt: new Date('2024-01-20')
-  }
-];
-
-const mockCVs: CV[] = [
-  {
-    id: 1,
-    userId: 2,
-    fileName: 'john_doe_resume.pdf',
-    skills: ['React', 'JavaScript', 'Node.js', 'CSS'],
-    experience: '4 years',
-    uploadedAt: new Date('2024-01-18'),
-    availability: true
-  }
-];
+const mockUsers: User[] = demoUsers;
+const mockJobs: Job[] = demoJobs;
+const mockCVs: CV[] = demoCVs;
 
 interface Question {
   id: number;
@@ -223,13 +193,7 @@ interface Question {
   correct: number;
 }
 
-const mockQuestions: Question[] = [
-  { id: 1, question: 'What is React?', options: ['A library', 'A framework', 'A database', 'A language'], correct: 0 },
-  { id: 2, question: 'What does CSS stand for?', options: ['Computer Style Sheets', 'Cascading Style Sheets', 'Creative Style Sheets', 'Colorful Style Sheets'], correct: 1 },
-  { id: 3, question: 'Which is a JavaScript framework?', options: ['Python', 'Angular', 'MySQL', 'PHP'], correct: 1 },
-  { id: 4, question: 'What is Node.js?', options: ['A database', 'A runtime environment', 'A CSS framework', 'A testing tool'], correct: 1 },
-  { id: 5, question: 'What is MongoDB?', options: ['A SQL database', 'A NoSQL database', 'A programming language', 'A web server'], correct: 1 }
-];
+const mockQuestions: Question[] = demoQuestions;
 
 // Main App Component
 export default function RecruitmentSystem() {
@@ -641,12 +605,11 @@ function AdminDashboard({ user, onLogout, jobs, setJobs, cvs, setCvs, matches, s
           )}
 
           {activeSection === 'matching' && (
-            <MatchingSection 
+            <EnhancedMatchingSection 
               jobs={jobs}
               cvs={cvs}
               matches={matches}
               setMatches={setMatches}
-              calculateMatch={calculateMatch}
               tests={tests}
               setTests={setTests}
             />
