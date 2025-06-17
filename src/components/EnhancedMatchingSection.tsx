@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Brain, Target, TrendingUp, AlertCircle, CheckCircle, Clock, Eye, Star, Zap, MessageSquare } from 'lucide-react';
+import { Brain, Target, TrendingUp, AlertCircle, CheckCircle, Clock, Eye, Star, Zap, MessageSquare, X } from 'lucide-react';
 import AIMatchingService from '../services/aiMatching';
 
 interface EnhancedMatch {
@@ -53,7 +53,26 @@ const EnhancedMatchingSection: React.FC<EnhancedMatchingSectionProps> = ({
       setApiToken(storedToken);
       setAiService(new AIMatchingService(storedToken));
     }
-  }, []);
+
+    // Load saved enhanced matches
+    const savedMatches = localStorage.getItem('enhanced_matches');
+    if (savedMatches) {
+      try {
+        const parsedMatches = JSON.parse(savedMatches);
+        // Verify the matches are still valid with current jobs and CVs
+        const validMatches = parsedMatches.filter((match: EnhancedMatch) => 
+          jobs.some(job => job.id === match.jobId) && 
+          cvs.some(cv => cv.id === match.cvId)
+        );
+        if (validMatches.length > 0) {
+          setEnhancedMatches(validMatches);
+        }
+      } catch (error) {
+        console.error('Failed to load saved matches:', error);
+        localStorage.removeItem('enhanced_matches');
+      }
+    }
+  }, [jobs, cvs]);
 
   const handleSetupAI = () => {
     if (apiToken.trim()) {
@@ -99,6 +118,9 @@ const EnhancedMatchingSection: React.FC<EnhancedMatchingSectionProps> = ({
       newEnhancedMatches.sort((a, b) => b.finalScore - a.finalScore);
       setEnhancedMatches(newEnhancedMatches);
 
+      // Save enhanced matches to localStorage
+      localStorage.setItem('enhanced_matches', JSON.stringify(newEnhancedMatches));
+
       // Update the main matches state for backward compatibility
       const basicMatches = newEnhancedMatches.map(match => ({
         matchId: `${match.cvId}_${match.jobId}`,
@@ -117,6 +139,12 @@ const EnhancedMatchingSection: React.FC<EnhancedMatchingSectionProps> = ({
     } finally {
       setIsAnalyzing(false);
     }
+  };
+
+  const clearSavedMatches = () => {
+    localStorage.removeItem('enhanced_matches');
+    setEnhancedMatches([]);
+    setMatches([]);
   };
 
   const getScoreColor = (score: number) => {
@@ -218,6 +246,9 @@ const EnhancedMatchingSection: React.FC<EnhancedMatchingSectionProps> = ({
           </h3>
           <p className="text-gray-400 text-sm mt-1">
             Hybrid matching combining keyword analysis + semantic AI understanding
+            {enhancedMatches.length > 0 && (
+              <span className="ml-2 text-blue-400">• {enhancedMatches.length} matches loaded</span>
+            )}
           </p>
         </div>
         
@@ -249,6 +280,16 @@ const EnhancedMatchingSection: React.FC<EnhancedMatchingSectionProps> = ({
               </>
             )}
           </button>
+          
+          {enhancedMatches.length > 0 && (
+            <button
+              onClick={clearSavedMatches}
+              className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all"
+            >
+              <X className="w-4 h-4" />
+              <span>Clear Results</span>
+            </button>
+          )}
         </div>
       </div>
 

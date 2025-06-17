@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User as UserIcon, Briefcase, FileText, Clock, CheckCircle, XCircle, Upload, Search, Filter, Eye, EyeOff, Menu, X, Home, Users, FileCheck, BarChart3, Settings, LogOut, Timer, Award, TrendingUp, Calendar, Mail, Lock, ArrowRight, Plus, Trash2, Edit, Download, Send, AlertCircle, ChevronDown } from 'lucide-react';
 import { User, Job, CV, Match, Test, Question } from './types';
 import { demoJobs, demoCVs, demoUsers, demoQuestions } from './data/demoData';
 import AdminDashboard from './AdminDashboard';
 import UserDashboard from './UserDashboard';
-import { TextMatcher } from './utils/textProcessing';
 
 // Main App Component
 const RecruitmentSystem: React.FC = () => {  const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -16,11 +15,36 @@ const RecruitmentSystem: React.FC = () => {  const [currentUser, setCurrentUser]
   const [tests, setTests] = useState<Test[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const [showNewJobForm, setShowNewJobForm] = useState<boolean>(false);
+
+  // Load session data on component mount
+  useEffect(() => {
+    const savedSession = localStorage.getItem('fastrack_session');
+    if (savedSession) {
+      try {
+        const sessionData = JSON.parse(savedSession);
+        const user = users.find(u => u.id === sessionData.userId);
+        if (user) {
+          setCurrentUser(user);
+          setCurrentView(user.role === 'admin' ? 'adminDashboard' : 'userDashboard');
+        }
+      } catch (error) {
+        console.error('Failed to restore session:', error);
+        localStorage.removeItem('fastrack_session');
+      }
+    }
+  }, [users]);
+
   const handleLogin = (email: string, password: string): User | undefined => {
     const user = users.find(u => u.email === email && u.password === password);
     if (user) {
       setCurrentUser(user);
       setCurrentView(user.role === 'admin' ? 'adminDashboard' : 'userDashboard');
+      
+      // Save session to localStorage
+      localStorage.setItem('fastrack_session', JSON.stringify({
+        userId: user.id,
+        timestamp: new Date().getTime()
+      }));
     }
     return user;
   };
@@ -28,63 +52,15 @@ const RecruitmentSystem: React.FC = () => {  const [currentUser, setCurrentUser]
   const handleLogout = (): void => {
     setCurrentUser(null);
     setCurrentView('login');
+    
+    // Clear session from localStorage
+    localStorage.removeItem('fastrack_session');
   };
 
   const handlePasswordChange = (userId: number, oldPassword: string, newPassword: string): boolean => {
     // This would call an API in a real application
     alert(`Password change for user ${userId} would be processed here.`);
     return true;
-  };
-  const calculateMatch = (job: Job, cv: CV): number => {
-    if (!cv.skills || !job.requiredSkills) return 0;
-    
-    // Get CV text content, either from the file or construct from skills and experience
-    let cvText = '';
-    if ((cv as any).fileData) {
-      // In a real implementation, you would extract text from the file
-      // For demo purposes, we'll construct from skills and experience
-      cvText = `CV contains skills: ${cv.skills.join(', ')}. Experience: ${cv.experience}.`;
-    } else {
-      cvText = `CV contains skills: ${cv.skills.join(', ')}. Experience: ${cv.experience}.`;
-    }
-    
-    // Construct job description text
-    const jobText = `Job title: ${job.title}. Description: ${job.description}. Required skills: ${job.requiredSkills.join(', ')}. Experience level: ${job.experienceLevel}.`;
-    
-    // Use TF-IDF matcher for more accurate matching
-    const matcher = new TextMatcher();
-    const matchPercentage = matcher.calculateMatchPercentage(jobText, cvText);
-    
-    // If TF-IDF matching gives too low a score, fall back to basic skill matching
-    if (matchPercentage < 20) {
-      // Find matching skills
-      const matchingSkills = cv.skills.filter(skill => 
-        job.requiredSkills.some(reqSkill => 
-          reqSkill.toLowerCase() === skill.toLowerCase()
-        )
-      );
-      
-      // Calculate match percentage based on required skills
-      const skillMatch = Math.round((matchingSkills.length / job.requiredSkills.length) * 100);
-      
-      // Consider experience level as a factor
-      let experienceMatch = 0;
-      const cvExp = parseInt(cv.experience);
-      const reqExp = parseInt(job.experienceLevel);
-      
-      if (!isNaN(cvExp) && !isNaN(reqExp)) {
-        if (cvExp >= reqExp) {
-          experienceMatch = 100; // Full match if candidate meets or exceeds required experience
-        } else {
-          experienceMatch = Math.round((cvExp / reqExp) * 100); // Partial match based on proportion
-        }
-      }
-      
-      // Final match score (70% skills, 30% experience)
-      return Math.round((skillMatch * 0.7) + (experienceMatch * 0.3));
-    }
-    
-    return matchPercentage;
   };
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -101,7 +77,6 @@ const RecruitmentSystem: React.FC = () => {  const [currentUser, setCurrentUser]
           tests={tests}          setTests={setTests}
           setUsers={setUsers}
           setCurrentUser={setCurrentUser}
-          calculateMatch={calculateMatch}
           sidebarOpen={sidebarOpen}
           setSidebarOpen={setSidebarOpen}
           showNewJobForm={showNewJobForm}
