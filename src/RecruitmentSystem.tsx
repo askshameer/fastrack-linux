@@ -13,10 +13,11 @@ const RecruitmentSystem: React.FC = () => {  const [currentUser, setCurrentUser]
   const [cvs, setCvs] = useState<CV[]>(demoCVs);
   const [matches, setMatches] = useState<Match[]>([]);
   const [tests, setTests] = useState<Test[]>([]);
+  const [questions, setQuestions] = useState<Question[]>(demoQuestions);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const [showNewJobForm, setShowNewJobForm] = useState<boolean>(false);
 
-  // Load session data on component mount
+  // Load session and CV data on component mount
   useEffect(() => {
     const savedSession = localStorage.getItem('fastrack_session');
     if (savedSession) {
@@ -32,7 +33,91 @@ const RecruitmentSystem: React.FC = () => {  const [currentUser, setCurrentUser]
         localStorage.removeItem('fastrack_session');
       }
     }
+
+    // Load saved CVs
+    const savedCVs = localStorage.getItem('fastrack_cvs');
+    if (savedCVs) {
+      try {
+        const parsedCVs = JSON.parse(savedCVs);
+        // Merge saved CVs with demo CVs, avoiding duplicates
+        const mergedCVs = [...demoCVs];
+        parsedCVs.forEach((savedCV: CV) => {
+          if (!mergedCVs.some(cv => cv.id === savedCV.id)) {
+            mergedCVs.push(savedCV);
+          }
+        });
+        setCvs(mergedCVs);
+      } catch (error) {
+        console.error('Failed to load saved CVs:', error);
+        localStorage.removeItem('fastrack_cvs');
+      }
+    }
+
+    // Load saved users
+    const savedUsers = localStorage.getItem('fastrack_users');
+    if (savedUsers) {
+      try {
+        const parsedUsers = JSON.parse(savedUsers);
+        // Merge saved users with demo users, avoiding duplicates
+        const mergedUsers = [...demoUsers];
+        parsedUsers.forEach((savedUser: User) => {
+          if (!mergedUsers.some(user => user.id === savedUser.id)) {
+            mergedUsers.push(savedUser);
+          }
+        });
+        setUsers(mergedUsers);
+      } catch (error) {
+        console.error('Failed to load saved users:', error);
+        localStorage.removeItem('fastrack_users');
+      }
+    }
+
+    // Load saved questions
+    const savedQuestions = localStorage.getItem('fastrack_questions');
+    if (savedQuestions) {
+      try {
+        const parsedQuestions = JSON.parse(savedQuestions);
+        // Merge saved questions with demo questions, avoiding duplicates
+        const mergedQuestions = [...demoQuestions];
+        parsedQuestions.forEach((savedQuestion: Question) => {
+          if (!mergedQuestions.some(q => q.id === savedQuestion.id)) {
+            mergedQuestions.push(savedQuestion);
+          }
+        });
+        setQuestions(mergedQuestions);
+      } catch (error) {
+        console.error('Failed to load saved questions:', error);
+        localStorage.removeItem('fastrack_questions');
+      }
+    }
   }, [users]);
+
+  // Save CVs to localStorage whenever cvs state changes
+  useEffect(() => {
+    // Only save non-demo CVs (those added by users)
+    const userCVs = cvs.filter(cv => cv.id > 6); // demo CVs have IDs 1-6
+    if (userCVs.length > 0) {
+      localStorage.setItem('fastrack_cvs', JSON.stringify(userCVs));
+    }
+  }, [cvs]);
+
+  // Save users to localStorage whenever users state changes
+  useEffect(() => {
+    // Only save non-demo users (those created by admin)
+    const newUsers = users.filter(user => user.id > 7); // demo users have IDs 1-7
+    if (newUsers.length > 0) {
+      localStorage.setItem('fastrack_users', JSON.stringify(newUsers));
+    }
+  }, [users]);
+
+  // Save questions to localStorage whenever questions state changes
+  useEffect(() => {
+    // Only save non-demo questions (those uploaded by admin)
+    const newQuestions = questions.filter(q => q.id > 8); // demo questions have IDs 1-8
+    if (newQuestions.length > 0) {
+      localStorage.setItem('fastrack_questions', JSON.stringify(newQuestions));
+    }
+  }, [questions]);
 
   const handleLogin = (email: string, password: string): User | undefined => {
     const user = users.find(u => u.email === email && u.password === password);
@@ -75,6 +160,8 @@ const RecruitmentSystem: React.FC = () => {  const [currentUser, setCurrentUser]
           matches={matches}
           setMatches={setMatches}
           tests={tests}          setTests={setTests}
+          questions={questions}
+          setQuestions={setQuestions}
           setUsers={setUsers}
           setCurrentUser={setCurrentUser}
           sidebarOpen={sidebarOpen}

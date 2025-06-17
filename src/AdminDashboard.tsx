@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { User as UserIcon, Briefcase, FileText, Home, Users, FileCheck, BarChart3, Settings, LogOut, Lock, X, Menu, TrendingUp } from 'lucide-react';
-import { User, Job, CV, Match, Test, mockUsers } from './types';
+import { User as UserIcon, Briefcase, FileText, Home, Users, FileCheck, BarChart3, Settings, LogOut, Lock, X, Menu, TrendingUp, UserPlus, HelpCircle } from 'lucide-react';
+import { User, Job, CV, Match, Test, Question, mockUsers } from './types';
 import JobsSection from './components/JobsSection';
 import CVsSection from './components/CVsSection';
 import EnhancedMatchingSection from './components/EnhancedMatchingSection';
 import CandidatesSection from './components/CandidatesSection';
 import AnalyticsSection from './components/AnalyticsSection';
+import UserManagementSection from './components/UserManagementSection';
+import QuestionBankSection from './components/QuestionBankSection';
 
 interface AdminDashboardProps {
   user: User;
@@ -19,6 +21,8 @@ interface AdminDashboardProps {
   setMatches: React.Dispatch<React.SetStateAction<Match[]>>;
   tests: Test[];
   setTests: React.Dispatch<React.SetStateAction<Test[]>>;
+  questions: Question[];
+  setQuestions: React.Dispatch<React.SetStateAction<Question[]>>;
   setUsers: React.Dispatch<React.SetStateAction<User[]>>;
   setCurrentUser?: React.Dispatch<React.SetStateAction<User | null>>;
   sidebarOpen: boolean;
@@ -40,6 +44,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   setMatches,
   tests,
   setTests,
+  questions,
+  setQuestions,
   setUsers,
   setCurrentUser,
   sidebarOpen,
@@ -48,7 +54,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   setShowNewJobForm,
   onPasswordChange
 }) => {
-  const [activeSection, setActiveSection] = useState<'overview' | 'jobs' | 'cvs' | 'matching' | 'candidates' | 'analytics'>('overview');
+  const [activeSection, setActiveSection] = useState<'overview' | 'jobs' | 'cvs' | 'matching' | 'candidates' | 'analytics' | 'users' | 'questions'>('overview');
 
   interface StatItem {
     label: string;
@@ -70,6 +76,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     { id: 'cvs' as const, label: 'CVs', icon: FileText },
     { id: 'matching' as const, label: 'Matching', icon: FileCheck },
     { id: 'candidates' as const, label: 'Candidates', icon: Users },
+    { id: 'users' as const, label: 'User Management', icon: UserPlus },
+    { id: 'questions' as const, label: 'Question Bank', icon: HelpCircle },
     { id: 'analytics' as const, label: 'Analytics', icon: BarChart3 }
   ];
 
@@ -234,6 +242,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               cvs={cvs}
               setCvs={setCvs}
               currentUser={user}
+              users={users}
+              setUsers={setUsers}
             />
           )}
 
@@ -256,6 +266,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               setCvs={setCvs}
               currentUser={user}
               setCurrentUser={setCurrentUser}
+            />
+          )}
+
+          {activeSection === 'users' && (
+            <UserManagementSection 
+              users={users}
+              setUsers={setUsers}
+              currentUser={user}
+            />
+          )}
+
+          {activeSection === 'questions' && (
+            <QuestionBankSection 
+              questions={questions}
+              setQuestions={setQuestions}
             />
           )}
 
